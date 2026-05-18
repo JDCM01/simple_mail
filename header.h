@@ -37,7 +37,7 @@
 */
 
 #define MAX_SIZE 240
-#define NAMES_SIZE 20
+#define NAMES_SIZE 30
 #define IPV4_SIZE  16
 #define IPV6_SIZE 46
 #define PORT_SIZE 5
@@ -66,7 +66,7 @@ void send_and_receive(int client_fd, char message[], char answer[], char receive
 *client_fd: descriptor de archivos del socket del cliente
 *receiver: nombre del que esta recibiendo el mensaje
 */
-void receive_message(int client_fd, char receiver[]);
+void receive_message(int client_fd, char incomming_mesage[], char receiver[]);
 
 /*receive_and_send
 *Funcion para enviar mensajes a un cliente y recibir su respuesta copiandola 
@@ -290,12 +290,9 @@ void get_arguments(char string[], char argv[], size_t argument_length);
 *Argumentos:
 *client_fd: descriptor de archivos del socket del cliente
 *-file_pointer: Apuntador al archivo users.txt donde se encuentran los usuarios y las contraseñas
-*
-*Retorno:
-*0: Si se deniega el acceso
-*1: Si se concede el acceso
 */
-int login(int client_fd, FILE *file_pointer);
+void login(int client_fd, FILE *file_pointer);
+
 /*
 *register_user
 *-------------
@@ -350,7 +347,7 @@ pthread_mutex_t lock;
 *ipv6: dirección del cliente IPv6
 */
 typedef struct Client{
-    char name[NAMES_SIZE];
+    char mail[NAMES_SIZE];
     int client_fd;
     struct sockaddr_in client_address;
     socklen_t addr_len;
@@ -458,7 +455,7 @@ void close_sockets(List** stack);
 *server_fd: descriptor de archivo
 *stack: Lista de clientes conectados
 *///int server_fd, List** stack
-void* register_login(void* args);
+void register_login(int server_fd, int client_fd, char user_mail[]);
 
 
 #endif

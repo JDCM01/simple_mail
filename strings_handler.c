@@ -9,14 +9,15 @@
 *client_fd: descriptor de archivos del socket del cliente
 *receiver: nombre del que esta recibiendo el mensaje
 */
-void receive_message(int client_fd, char receiver[]){
-    char recv[MAX_SIZE];
+void receive_message(int client_fd, char incomming_mesage[], char receiver[]){
     char emissary[NAMES_SIZE];
-    int bytes_leidos = read(client_fd, recv, sizeof(recv));
+    char message[MAX_SIZE];
+    int bytes_leidos = read(client_fd, message, sizeof(message));
     if (bytes_leidos > 0) {
-        recv[bytes_leidos] = '\0'; // Aseguramos que la cadena termine en nulo
-        extract_from_string(recv, emissary, ':');
-        color_format(recv, receiver);
+        message[bytes_leidos] = '\0'; // Aseguramos que la cadena termine en nulo
+        //extract_from_string(message, emissary, ':');
+        color_format(message, receiver);
+        copy_string(message, incomming_mesage, string_length(message, MAX_SIZE));
     }
 }
 
@@ -173,7 +174,8 @@ int check_string(char string_to_validate[], FILE *file_pointer, int option){
     int i = 0;
     if(option == 0){
         while((c = getc(file_pointer)) != EOF){
-            if(c == ';'){
+            printf("\n %s vs %s", actual_string, string_to_validate);
+            if(c == ';' || c == '\n'){
                 actual_string[i] = '\0';
                 comparison_result = compare_strings(actual_string, string_to_validate);
                 if(comparison_result == 1){
@@ -182,17 +184,14 @@ int check_string(char string_to_validate[], FILE *file_pointer, int option){
                 i = 0;
             }
             else{
-                if(c != '\n'){
                     actual_string[i] = c;    
                     i++;
-                }
-                
             }
         }
-        return 0;  
-    }
+        return 0;
+    }  
     else{
-        while((c = getc(file_pointer)) != EOF && c != ';'){
+        while((c = getc(file_pointer)) != EOF && c != '\n'){
             if(c != '\n' && c != ';'){
                 actual_string[i] = c;
                 i++;
@@ -200,6 +199,9 @@ int check_string(char string_to_validate[], FILE *file_pointer, int option){
             
         }
         actual_string[i] = '\0';
+        printf("\n %s vs %s", actual_string, string_to_validate);
+        i++;
+        fseek(file_pointer, -i, SEEK_CUR);
         comparison_result = compare_strings(actual_string, string_to_validate);
         if(comparison_result == 1){
             return 1;
@@ -319,13 +321,13 @@ void concatenate_string(char this_string[], char plus_this[], size_t MAX_LENGTH)
 */
 int compare_strings(char string_a[], char string_b[]){
     int i = 0;
-    while(i < MAX_SIZE && (string_a[i] != '\0') && (string_b[i] != '\0') ){
+    while(string_a[i] != '\0' && string_b[i] != '\0'){
         if(string_a[i] != string_b[i]){
             return 0;
         }
         i++;
     }
-    if((string_a[i] == string_b[i]) && (string_a[i] == '\0')){
+    if(string_a[i] == '\0' && string_b[i] == '\0'){//(string_a[i] == string_b[i]) &&     
         return 1;
     }else{
         return 0;

@@ -21,6 +21,7 @@ void send_and_receive(int client_fd, char message[], char answer[], char receive
 
     // se envia un mensaje usando el descriptor del cliente osea lo que retorna el accept
     // Usamos string_length para enviar solo los caracteres necesarios (+1 para el '\0')
+    printf("\nmensaje a enviar en send y receive: %s", message_to_send);
     write(client_fd, message_to_send, string_length(message_to_send, MESSAGE_LENGTH));
     
     // Se lee lo que el cliente mande
@@ -37,36 +38,36 @@ void send_and_receive(int client_fd, char message[], char answer[], char receive
 *------
 *Función para comparar una contraseña que entregue el usuario con la que se
 *halle en el archivo, se llamara a la función check_string, si la 
-*contraseña se encuentra en el archivo la función retornara un 1 y
-*se le consedera acceso al usuario al chat
-*si se equivoca mas de 3 veces en digitar la contraseña se le denegara el acceso
+*contraseña se encuentra en el archivo la funcion terminara dandole acceso al cliente
 *
 *Argumentos:
 *client_fd: descriptor de archivos del socket del cliente
 *-file_pointer: Apuntador al archivo users.txt donde se encuentran los usuarios y las contraseñas
-*
-*Retorno:
-*0: Si se deniega el acceso
-*1: Si se concede el acceso
 */
-int login(int client_fd, FILE *file_pointer){
-    int i = 0;
+void login(int client_fd, FILE *file_pointer){
+    int result = 0;
     char answer[MAX_SIZE];
     char message[] = "Para poder continuar debera digitar su contraseña: \0";
     char password[MAX_SIZE];
-    char ack[MAX_SIZE];
-    char access[] = "Server: Access granted\0";
-    char blocking[] = "Server: Access denied\0";
-    send_and_receive(client_fd, message, answer, "Server\0", MAX_SIZE, MAX_SIZE);
-    eliminate_from_string(answer, password, ' ', MAX_SIZE);
-    if(check_string(password, file_pointer, 1) == 1){ 
-        write(client_fd, access, string_length(access, MAX_SIZE));
-        return 1;
-    }   
-    write(client_fd, blocking, string_length(blocking, MAX_SIZE));
-    return 0;
+    char access[] = "Server: Acceso garantizado\0";
+    char blocking[] = "Server: Acceso denegado intentalo otra vez\0";
+    while(result == 0){
+        send_and_receive(client_fd, message, answer, "Server\0", MAX_SIZE, MAX_SIZE);
+        eliminate_from_string(answer, password, ' ', MAX_SIZE);
+        printf("\nLa contraseña que se comprobara es: %s", answer);
+        printf("\nEsto queda en la variable password: %s", password);
+        if(check_string(answer, file_pointer, 1) == 1){ 
+            printf("\nMensaje que se enviara debido a que es la contraseña correcta: %s", access);
+            write(client_fd, access, string_length(access, MAX_SIZE));
+            result = 1;
+        }
+        else{
+            write(client_fd, blocking, string_length(blocking, MAX_SIZE));
+            copy_string("Contraseña incorrecta por favor digite una distinta\0", message, 60);
+            printf("\nContraseña erronea el mensaje que deberia enviarse a continuacion es: %s", message);
+        }    
+    }
 }
-
 /*
 *register_user
 *-------------
@@ -86,15 +87,15 @@ void register_user(int client_fd, char user_name[],FILE *file_pointer){
     copy_string(user_name, user_to_register, 100);
     char message[] = "Bienvenido al chat para poder registrarse debe digitar una contraseña\0";
     send_and_receive(client_fd, message, answer, "Server\0", MAX_SIZE, MAX_SIZE);  
-    char password[MAX_SIZE];
-    eliminate_from_string(answer, password, ' ', MAX_SIZE);  
+    //char password[MAX_SIZE];
+    //eliminate_from_string(answer, password, ' ', MAX_SIZE);  
     insert_into_file(file_pointer, "\n");
     concatenate_string(user_to_register, ";", MAX_SIZE);
-    concatenate_string(user_to_register, password, MAX_SIZE);
-    concatenate_string(user_to_register, ";", MAX_SIZE);
+    concatenate_string(user_to_register, answer, MAX_SIZE);
+    //concatenate_string(user_to_register, ";", MAX_SIZE);
     concatenate_string(user_to_register, "\n\0", MAX_SIZE);
     insert_into_file(file_pointer, user_to_register);
-    write(client_fd, "Server: Access granted\0", string_length("Server: Access granted\0", MAX_SIZE));
+    write(client_fd, "Server: Acceso garantizado\0", string_length("Server: Acceso garantizado\0", MAX_SIZE));
 }
 
 

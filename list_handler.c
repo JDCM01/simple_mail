@@ -31,7 +31,7 @@ void show_list(List* stack){
     List* actual_node = (List*)malloc(sizeof(List));
     actual_node = stack;
     while(actual_node != NULL){
-        printf("\nUsuario: %s", actual_node->user->name);
+        printf("\nUsuario: %s", actual_node->user->mail);
         actual_node = actual_node->next;
     }
 }
@@ -54,7 +54,7 @@ void close_sockets(List** stack){
 
     while(stack != NULL && *stack != NULL){
         List* temp = *stack;
-        printf("\nCerrando conexion con: %s", (*stack)->user->name);
+        printf("\nCerrando conexion con: %s", (*stack)->user->mail);
         close(temp->user->client_fd);
         *stack = (*stack)->next;
         free(temp->user);
@@ -86,46 +86,43 @@ List* add_client(List** stack){
 /*
 *register_login
 *--------------
-*Función para guardar espacio en memoria para un cliente y agregarlo a la lista 
-*de usuarios conectados, hay tres casos posibles a la hora de agregarlo
-*Caso 1, no hay nadie en la lista, en este caso stack sera igual al nuevo nodo creado
-*Caso 2, ya hay gente en la lista, por lo cual el componente next de el nodo recien creado
-*sera igual al primer nodo de la lista y este nodo recien creado
-*sera el nuevo primer elemento de la lista
+*Función para recibir el correo del cliente, se encargara de llamar 
+*llamar a login o register dependiendo de:
+*si el correo ya se encuentra dentro del archivo de usuarios llamara a login
+*si el correo no se encuentra dentro del archivo de usuarios llamara a register
 *
 *Argumentos:
-*server_fd: descriptor de archivo
-*stack: Lista de clientes conectados
+*server_fd: descriptor de archivo del socket del servidor
+*client_fd: descriptor de archivo del cliente
+*user_mail: correo electronico del usuario que desea logearse o registrarse
 */
-void* register_login(void* args){
-    thread_args* arguments = (thread_args*)args;
-    int* access = malloc(sizeof(int));
+void register_login(int server_fd, int client_fd, char user_mail[]){
     char message[] = "Server: Conexión establecida con: \0";
     char answer[NAMES_SIZE];
-    char user_name[NAMES_SIZE];
-    int read_bytes = read(arguments->client->client_fd, user_name, sizeof(user_name));
+    char user[NAMES_SIZE];
+
+    //pidiendole al cliente su correo
+    int read_bytes = read(client_fd, user, sizeof(user));
     if (read_bytes > 0) {
-        user_name[read_bytes] = '\0'; // Aseguramos que la cadena termine en nulo
-        copy_string(user_name, arguments->client->name, NAMES_SIZE);
-        concatenate_string(message, user_name, MAX_SIZE);
+        user[read_bytes] = '\0'; // Aseguramos que la cadena termine en nulo
+        copy_string(user, user_mail, NAMES_SIZE);
+        concatenate_string(message, user, MAX_SIZE);
         color_format(message, "Server\0");
     }
 
     pthread_mutex_lock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido
     FILE *file_pointer;
     file_pointer = fopen("users.txt","a+");
-    if(check_string(user_name, file_pointer, 0) == 1){
+    if(check_string(user, file_pointer, 0) == 1){
         color_format("Server: Usuario encontrado se procede al login\0", "Server\0");
-        *access = login(arguments->client->client_fd, file_pointer);
+        login(client_fd, file_pointer);
     }
     else{
         color_format("Server: No se encontro al usuario entonces se procede a guardarlo\0", "Server\0");
-        register_user(arguments->client->client_fd, user_name, file_pointer);
-        *access = 1;
+        register_user(client_fd, user, file_pointer);
     }
 
     fclose(file_pointer);
     pthread_mutex_unlock(&lock); // se abre el candado ya que salimos de la sección critica y debo darle la oportunidad 
     //a otro cliente de que se registre
-    pthread_exit(access); // Devolvemos el puntero al resultado
 }
