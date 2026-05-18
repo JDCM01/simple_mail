@@ -88,7 +88,6 @@ int main(void){
         //recibiendo el permiso de continuar o la instrucción de enviar otra contraseña
         receive_message(client_fd, access, user_mail);
     }while(compare_strings(access, "Server: Acceso garantizado\0") != 1);
-
     color_format("Server: bienvenido al servicio de mensajeria", user_mail);
     
 }

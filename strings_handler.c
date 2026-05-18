@@ -17,6 +17,7 @@ void receive_message(int client_fd, char incomming_mesage[], char receiver[]){
         message[bytes_leidos] = '\0'; // Aseguramos que la cadena termine en nulo
         //extract_from_string(message, emissary, ':');
         color_format(message, receiver);
+        fflush(stdout);
         copy_string(message, incomming_mesage, string_length(message, MAX_SIZE));
     }
 }
@@ -174,7 +175,6 @@ int check_string(char string_to_validate[], FILE *file_pointer, int option){
     int i = 0;
     if(option == 0){
         while((c = getc(file_pointer)) != EOF){
-            printf("\n %s vs %s", actual_string, string_to_validate);
             if(c == ';' || c == '\n'){
                 actual_string[i] = '\0';
                 comparison_result = compare_strings(actual_string, string_to_validate);
@@ -199,7 +199,6 @@ int check_string(char string_to_validate[], FILE *file_pointer, int option){
             
         }
         actual_string[i] = '\0';
-        printf("\n %s vs %s", actual_string, string_to_validate);
         i++;
         fseek(file_pointer, -i, SEEK_CUR);
         comparison_result = compare_strings(actual_string, string_to_validate);

@@ -97,7 +97,7 @@ List* add_client(List** stack){
 *user_mail: correo electronico del usuario que desea logearse o registrarse
 */
 void register_login(int server_fd, int client_fd, char user_mail[]){
-    char message[] = "Server: Conexión establecida con: \0";
+    char message[MAX_SIZE] = "Server: Conexión establecida con: \0";
     char answer[NAMES_SIZE];
     char user[NAMES_SIZE];
 
@@ -113,15 +113,22 @@ void register_login(int server_fd, int client_fd, char user_mail[]){
     pthread_mutex_lock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido
     FILE *file_pointer;
     file_pointer = fopen("users.txt","a+");
+    if (file_pointer == NULL) {
+        perror("Error al abrir archivo de usuarios");
+        pthread_mutex_unlock(&lock);
+        return;
+    }
+
     if(check_string(user, file_pointer, 0) == 1){
-        color_format("Server: Usuario encontrado se procede al login\0", "Server\0");
+        color_format("Server: Usuario encontrado se procede al login", "Server");
         login(client_fd, file_pointer);
     }
     else{
-        color_format("Server: No se encontro al usuario entonces se procede a guardarlo\0", "Server\0");
+        color_format("Server: No se encontro al usuario entonces se procede a guardarlo", "Server");
         register_user(client_fd, user, file_pointer);
     }
 
+    rewind(file_pointer);
     fclose(file_pointer);
     pthread_mutex_unlock(&lock); // se abre el candado ya que salimos de la sección critica y debo darle la oportunidad 
     //a otro cliente de que se registre
