@@ -45,6 +45,46 @@ typedef struct accept_clients_args{
 }accept_clients_args;
 
 /*
+*client_manager_arguments
+*------------------------
+*componentes:
+*-client_fd: descriptor de archivos del socket del cliente
+*-server_fd: descriptor de archivos del socket del cliente
+*/
+typedef struct client_manager_arguments{
+    int client_fd;
+    int server_fd;
+}client_manager_arguments;
+
+/*
+*client_manager
+*--------------
+*Función que se encargara de todo el ciclo de vida del cliente
+*hara el login, y mostrara el menu de mensajes, hara un read
+*y dependiendo de el mensaje que envie el cliente almacenara en el inbox los 
+*correos que el cliente cree y
+*mostrara los correos que tenga en el inbox el cliente o se desconectara 
+*
+*argumentos:
+*-client_fd: descriptor de archivos del socket del cliente
+*-server_fd: descriptor de archivos del socket del cliente
+*-client_mail: mail del cliente para poder armar los correos
+*este seria para hacer un from, quien envia
+*/
+void* client_manager(void* args){
+    char client_mail[NAMES_SIZE];
+    client_manager_arguments* arguments = (client_manager_arguments*)args;
+
+    /*Iniciando el proceso para acceder al servidor, se recibira el mail del usuario
+    se comprobara si ya esta registrado, en cualquier caso se le enviara 
+    un mensaje pidiendo una contraseña
+    */
+    register_login(arguments->server_fd, arguments->client_fd, client_mail);
+    
+    pthread_exit(NULL);
+}
+
+/*
 *accept_clients
 *--------------
 *Función que estara corriendo en un hilo constantemente para poder aceptar clientes en cualquier
@@ -81,13 +121,25 @@ void* accept_clients(void* args){
             *(arguments->client_list) = new_node;
             pthread_mutex_unlock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido    
         }
+
+        //Creando los argumentos para el hilo de client_manager
+        client_manager_arguments* manager_args = (client_manager_arguments*)malloc(sizeof(client_manager_arguments));
+        manager_args->client_fd = fd;
+        manager_args->server_fd = arguments->server_fd; 
         
-        /*Iniciando el proceso para acceder al servidor, se recibira el mail del usuario
-        se comprobara si ya esta registrado, en cualquier caso se le enviara 
-        un mensaje pidiendo una contraseña
-        */
-        register_login(arguments->server_fd, new_client->client_fd, new_client->mail);
-        color_format("Server: Se llega al registro o logeo todo perfecto hasta aquí\0", "Server");
+        //Creando hilo para client_manager y desplegandolo
+     
+        pthread_t manager_thread;
+        if (pthread_create(&manager_thread, NULL, client_manager, manager_args) != 0) {
+            perror("Error al crear el hilo de aceptación");
+            exit(EXIT_FAILURE);
+        }
+
+        //los recursos usados por manager_thread podran ser reclamados cuando el hilo termine
+        pthread_detach(manager_thread);
+
+        //color_format("Server: Se llega al registro o logeo todo perfecto hasta aquí", "Server");
+        //fflush(stdout);
     }
 }
 
@@ -117,7 +169,7 @@ int main(void){
         exit(EXIT_FAILURE);
     }
 
-    if(listen(server_fd, 1) == -1){//listen retorna 0 cuando las conexiones son exitosas, -1 si hay errores 
+    if(listen(server_fd, 0) == -1){//listen retorna 0 cuando las conexiones son exitosas, -1 si hay errores 
         perror("Error al escuchar a los clientes");
         exit(EXIT_FAILURE);
     }

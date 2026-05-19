@@ -17,7 +17,6 @@ void receive_message(int client_fd, char incomming_mesage[], char receiver[]){
         message[bytes_leidos] = '\0'; // Aseguramos que la cadena termine en nulo
         //extract_from_string(message, emissary, ':');
         color_format(message, receiver);
-        fflush(stdout);
         copy_string(message, incomming_mesage, string_length(message, MAX_SIZE));
     }
 }
@@ -82,16 +81,19 @@ void receive_and_send(int client_fd, char incoming_message[], char receiver[],si
 */
 void color_format(char message[], char receiver[]){
     char emissary[NAMES_SIZE];
+    fflush(stdout);
     extract_from_string(message, emissary, ':');
-    if(compare_strings(emissary, "Server\0") == 1){
+    if(compare_strings(emissary, "Server") == 1){
         printf("\n\x1B[33m %s\x1B[0m", message);
+        fflush(stdout);
     }
     else if(compare_strings(receiver, emissary) == 1){
         printf("\n\x1B[34m %s\x1B[0m", message);
+        fflush(stdout);
     }
     else if(compare_strings(emissary, receiver) != 1){
         printf("\n\x1B[35m %s\x1B[0m", message);
-
+        fflush(stdout);
     }
 }
 

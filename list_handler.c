@@ -97,7 +97,7 @@ List* add_client(List** stack){
 *user_mail: correo electronico del usuario que desea logearse o registrarse
 */
 void register_login(int server_fd, int client_fd, char user_mail[]){
-    char message[MAX_SIZE] = "Server: Conexión establecida con: \0";
+    char message[MAX_SIZE] = "Server: Conexión establecida con: ";
     char answer[NAMES_SIZE];
     char user[NAMES_SIZE];
 
@@ -128,8 +128,14 @@ void register_login(int server_fd, int client_fd, char user_mail[]){
         register_user(client_fd, user, file_pointer);
     }
 
-    rewind(file_pointer);
+    printf("\n sale de register o login");
+    fflush(stdout);
+
     fclose(file_pointer);
+    printf("\ncierra el archivo");
+    fflush(stdout);
     pthread_mutex_unlock(&lock); // se abre el candado ya que salimos de la sección critica y debo darle la oportunidad 
     //a otro cliente de que se registre
+    printf("\npasa mutex");
+    fflush(stdout);
 }
