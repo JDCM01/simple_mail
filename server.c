@@ -9,7 +9,7 @@
 #include"list_handler.c"
 #include"file_handler.c"
 #include"strings_handler.c"
-
+#include"os.c"
 
 #ifdef _WIN32
     /* --- CONFIGURACIÓN PARA WINDOWS --- */
@@ -50,10 +50,12 @@ typedef struct accept_clients_args{
 *componentes:
 *-client_fd: descriptor de archivos del socket del cliente
 *-server_fd: descriptor de archivos del socket del cliente
+*-client_list: lista de clientes conectados actualmente
 */
 typedef struct client_manager_arguments{
     int client_fd;
     int server_fd;
+    List** client_list;
 }client_manager_arguments;
 
 /*
@@ -64,6 +66,11 @@ typedef struct client_manager_arguments{
 *y dependiendo de el mensaje que envie el cliente almacenara en el inbox los 
 *correos que el cliente cree y
 *mostrara los correos que tenga en el inbox el cliente o se desconectara 
+*
+*posibles mensajes del cliente:
+*-quit: para indicar desconexión
+*-check: para revisar su inbox
+*-send: para enviar un correo
 *
 *argumentos:
 *-client_fd: descriptor de archivos del socket del cliente
@@ -80,6 +87,45 @@ void* client_manager(void* args){
     un mensaje pidiendo una contraseña
     */
     register_login(arguments->server_fd, arguments->client_fd, client_mail);
+    fflush(stdout);   
+    
+    //añadiendo cliente a la lista
+    pthread_mutex_lock(&lock); // se cierra el candado ya que vamos a modificar un recurso compartido
+    Client* new_client = (Client*)malloc(sizeof(Client));
+    new_client->client_fd = arguments->client_fd;   
+    List* new_node = (List*)malloc(sizeof(List));
+    new_node->user = new_client;
+    new_node->next = *(arguments->client_list);
+    *(arguments->client_list) = new_node;
+    pthread_mutex_unlock(&lock); // se abre el candado ya que salio de la sección critica
+    
+    while(1){
+        //Recibiendo el comando del cliente (leer de forma robusta)
+        char command[NAMES_SIZE];
+        memset(command, 0, sizeof(command));
+        int read_bytes = 0;
+        
+        //Leeyendo hasta recibir datos o error/EOF
+        read_bytes = read(arguments->client_fd, command, sizeof(command) - 1);
+        if (read_bytes <= 0) {
+            if (read_bytes == 0) {
+                printf("Cliente desconectado antes de enviar comando\n");
+            } else {
+                perror("Error leyendo comando del cliente");
+            }
+        } else {
+            command[read_bytes] = '\0'; // Aseguramos que la cadena termine en nulo
+        }
+
+        //ejecutando comando
+        if(compare_strings(command, "quit\0") == 1){
+            printf("under construction");
+        }else if(compare_strings(command, "check\0") == 1){
+            check_directory(arguments->client_fd, client_mail);
+        }else if(compare_strings(command, "send\0") == 1){
+            printf("under constructio");
+        }
+    }
     
     pthread_exit(NULL);
 }
@@ -99,47 +145,32 @@ void* client_manager(void* args){
 void* accept_clients(void* args){
     accept_clients_args* arguments = (accept_clients_args*)args;
     while(1){
-        Client* new_client = (Client*)malloc(sizeof(Client));
+        //aceptando la conexion con un cliente
         struct sockaddr_in client_address;
         socklen_t addr_len = sizeof(struct sockaddr_in);
-
         int fd = accept(arguments->server_fd, (struct sockaddr*)&client_address, &addr_len);
         
-        pthread_mutex_lock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido
-            
         if (fd < 0) {
             perror("Error al aceptar");
-            free(new_client);
-            pthread_mutex_unlock(&lock);// se abre el candado para que no se quede bloqueado eternamente
             continue; 
         }
         else{
-            new_client->client_fd = fd;   
-            List* new_node = (List*)malloc(sizeof(List));
-            new_node->user = new_client;
-            new_node->next = *(arguments->client_list);
-            *(arguments->client_list) = new_node;
-            pthread_mutex_unlock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido    
-        }
-
-        //Creando los argumentos para el hilo de client_manager
-        client_manager_arguments* manager_args = (client_manager_arguments*)malloc(sizeof(client_manager_arguments));
-        manager_args->client_fd = fd;
-        manager_args->server_fd = arguments->server_fd; 
+            //Creando los argumentos para el hilo de client_manager
+            client_manager_arguments* manager_args = (client_manager_arguments*)malloc(sizeof(client_manager_arguments));
+            manager_args->client_fd = fd;
+            manager_args->server_fd = arguments->server_fd; 
+            manager_args->client_list = arguments->client_list;
         
-        //Creando hilo para client_manager y desplegandolo
-     
-        pthread_t manager_thread;
-        if (pthread_create(&manager_thread, NULL, client_manager, manager_args) != 0) {
-            perror("Error al crear el hilo de aceptación");
-            exit(EXIT_FAILURE);
+            //Creando hilo para client_manager y desplegandolo
+            pthread_t manager_thread;
+            if (pthread_create(&manager_thread, NULL, client_manager, manager_args) != 0) {
+                perror("Error al crear el hilo de aceptación");
+                exit(EXIT_FAILURE);
+            }
+
+            //los recursos usados por manager_thread podran ser reclamados cuando el hilo termine
+            pthread_detach(manager_thread);
         }
-
-        //los recursos usados por manager_thread podran ser reclamados cuando el hilo termine
-        pthread_detach(manager_thread);
-
-        //color_format("Server: Se llega al registro o logeo todo perfecto hasta aquí", "Server");
-        //fflush(stdout);
     }
 }
 
@@ -151,6 +182,13 @@ int main(void){
         return 1;
     }
     #endif
+    
+    /*creando la carpeta inbox, en caso de que no exista, se le conceden
+    permisos de: lectura, escritura, ejecucion para propietario y otros usuarios*/ 
+    if(mkdir("inbox", 0777) == -1){
+        perror("mkdir fallo:");
+    }
+
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
 

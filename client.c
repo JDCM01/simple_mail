@@ -12,6 +12,7 @@
 #include"file_handler.c"
 #include"strings_handler.c"
 
+
 #ifdef _WIN32
     /* --- CONFIGURACIÓN PARA WINDOWS --- */
     #include <winsock2.h>
@@ -30,6 +31,41 @@
 #endif
 
 #include <pthread.h>
+
+/*
+*list_registers
+*--------------
+*Función que estara recibiendo mensajes del servidor para 
+*poder mostrar por pantalla a los clientes registrados en el servicio
+*o los correos en el inbox del usuario
+*
+*argumentos:
+*-client_fd: descriptor de archivos del socket del cliente
+*/
+void list_registers(int client_fd){
+    char incomming_message[MAX_SIZE];
+    do{
+        receive_message(client_fd, incomming_message, " ");
+    }
+    while(compare_strings(incomming_message, "end\0")!=1);
+}
+
+/*
+*listener_thread
+*---------------
+*Función para estar constantemente escuchando al servidor
+*para saber si en algun momento se recibe un nuevo correo
+*
+*argumentos:
+*-client_fd: descriptor de archivos del cliente
+*/
+void* listener_thread(void* args){
+    int client_fd = (int*)args;
+    char incomming_message[MAX_SIZE];
+    while(1){
+        receive_message(client_fd, incomming_message, "client\0");
+    }
+}
 
 /*tener en cuenta que ahora la función de login se hara en bucle hasta que se entregue la contraseña correcta
 asi que los receive and send deben estar en bucle en ese punto mientras que lo que retorne el servidor sea
@@ -52,6 +88,7 @@ int main(void){
     */
     int client_fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
+    int read_bytes;
     
     //Dandole identidad al cliente
     struct sockaddr_in address;
@@ -83,11 +120,39 @@ int main(void){
 
         //capturando y enviando contraseña
         get_string(password);
-        write(client_fd, password, sizeof(password));
+        write(client_fd, password, string_length(password, NAMES_SIZE));
 
         //recibiendo el permiso de continuar o la instrucción de enviar otra contraseña
         receive_message(client_fd, access, user_mail);
     }while(compare_strings(access, "Server: Acceso garantizado\0") != 1);
+
+    //Se concedio acceso y a continuación empieza el servicio de mensajeria
     color_format("Server: bienvenido al servicio de mensajeria", user_mail);
-    
+
+    char option_message[NAMES_SIZE] = {0};
+    while(compare_strings(option_message, "quit\0") != 1){
+        printf("\n\x1B[33mA continuación debera digitar una palabra para acceder a una de las funcionalidades\x1B[0m");
+        printf("\n\x1B[33mquit: para desconectarse del servicio\x1B[0m");
+        printf("\n\x1B[33msend: para construir y enviar un correo\x1B[0m");
+        printf("\n\x1B[33mcheck: para revisar el inbox y ver correos\x1B[0m");
+        printf("\n\x1B[33mEscriba la opción deseada por favor: \x1B[0m");
+        get_string(option_message);
+        write(client_fd, option_message, string_length(option_message, NAMES_SIZE));
+        if(compare_strings("send\0", option_message) == 1){
+            continue;
+        }else if(compare_strings("check\0", option_message) == 1){
+            list_registers(client_fd);
+            printf("\n\x1B[33m A continuación digite el nombre del correo que desea abrir\x1B[0m");
+            char file_name[MAX_SIZE] = {0};
+            char text[MAX_SIZE];
+            memset(text, 0, sizeof(text));
+            get_string(file_name);
+            write(client_fd, file_name, string_length(file_name, MAX_SIZE));
+            read_bytes = read(client_fd, text, sizeof(text));
+            printf("\n%s", text);
+        }
+        else if(compare_strings("quit\0", option_message) == 1){
+            continue;
+        }
+    }   
 }

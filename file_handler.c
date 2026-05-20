@@ -56,6 +56,7 @@ void login(int client_fd, FILE *file_pointer){
     char blocking[MAX_SIZE] = "Server: Acceso denegado intentalo otra vez\0";
     while(result == 0){
         send_and_receive(client_fd, message, answer, "Server\0", MAX_SIZE, NAMES_SIZE);
+        pthread_mutex_lock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido
         if(check_string(answer, file_pointer, 1) == 1){ 
             write(client_fd, access, string_length(access, MAX_SIZE));
             result = 1;
@@ -63,7 +64,8 @@ void login(int client_fd, FILE *file_pointer){
         else{
             write(client_fd, blocking, string_length(blocking, MAX_SIZE));
             copy_string(wrong_password, message, string_length(wrong_password, MAX_SIZE));
-        }    
+        }
+        pthread_mutex_unlock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido    
     }
 }
 /*
@@ -96,6 +98,26 @@ void register_user(int client_fd, char user_name[],FILE *file_pointer){
     write(client_fd, "Server: Acceso garantizado\0", string_length("Server: Acceso garantizado\0", MAX_SIZE));
 }
 
+/*
+*extract_from_file
+*-----------------
+*Función que recorrera todos los caracteres de un archivo
+*hasta llegar a EOF guardando todos estos caracteres
+*en text
+*
+*argumentos:
+*-file_pointer: puntero al archivo
+*-text: array de caracteres en el cual se guardara el texto
+*/
+void extract_from_file(FILE* file_pointer, char text[]){
+    char c;
+    int i = 0;
+    while((c = getc(file_pointer)) != EOF){
+        text[i] = c;
+        i++;
+    }
+    text[i] = '\0';
+}
 
 /*
 *print_from_file

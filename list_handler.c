@@ -109,13 +109,11 @@ void register_login(int server_fd, int client_fd, char user_mail[]){
         concatenate_string(message, user, MAX_SIZE);
         color_format(message, "Server\0");
     }
-
-    pthread_mutex_lock(&lock); // se cierra el candado ya que vamos a modificar un archivo compartido
+    
     FILE *file_pointer;
     file_pointer = fopen("users.txt","a+");
     if (file_pointer == NULL) {
         perror("Error al abrir archivo de usuarios");
-        pthread_mutex_unlock(&lock);
         return;
     }
 
@@ -128,14 +126,5 @@ void register_login(int server_fd, int client_fd, char user_mail[]){
         register_user(client_fd, user, file_pointer);
     }
 
-    printf("\n sale de register o login");
-    fflush(stdout);
-
     fclose(file_pointer);
-    printf("\ncierra el archivo");
-    fflush(stdout);
-    pthread_mutex_unlock(&lock); // se abre el candado ya que salimos de la sección critica y debo darle la oportunidad 
-    //a otro cliente de que se registre
-    printf("\npasa mutex");
-    fflush(stdout);
 }

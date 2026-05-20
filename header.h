@@ -308,6 +308,19 @@ void login(int client_fd, FILE *file_pointer);
 void register_user(int client_fd, char user_name[], FILE *file_pointer);
 
 /*
+*extract_from_file
+*-----------------
+*Función que recorrera todos los caracteres de un archivo
+*hasta llegar a EOF guardando todos estos caracteres
+*en text
+*
+*argumentos:
+*-file_pointer: puntero al archivo
+*-text: array de caracteres en el cual se guardara el texto
+*/
+void extract_from_file(FILE* file_pointer, char text[]);
+
+/*
 *print_from_file
 *----------------
 *esta funcion va recorrer el archivo hasta que se cumpla la condicion:
@@ -456,6 +469,32 @@ void close_sockets(List** stack);
 *stack: Lista de clientes conectados
 *///int server_fd, List** stack
 void register_login(int server_fd, int client_fd, char user_mail[]);
+
+//FUNCIONES PARA EL SO
+/*
+*check_directory
+*---------------
+*Función que encargada de entrara a la carpeta de inbox
+*o crearla en caso de que no exista, luego entrara
+*al inbox del usuario especifico y mostrara la lista 
+*de correos que tiene el usuario
+*
+*argumentos:
+*-client_fd: descriptor de archivos del cliente
+*client_mail: correo del cliente*/
+void check_directory(int client_fd, char client_mail[]);
+
+/*
+*show_directory_content
+*----------------------
+*Función para revisar el contenido de un directorio
+*ira recorriendo uno a uno las entradas del directorio
+*y enviandole al cliente por medio del client_fd cada entrada
+*
+*Argumentos:
+*-client_fd: descriptor de archivos del cliente
+*-dir: data type para los directorios*/
+void show_directory_content(int client_fd, DIR *dir);
 
 
 #endif
