@@ -152,7 +152,7 @@ int main(void){
             printf("\n%s", text);
         }
         else if(compare_strings("quit\0", option_message) == 1){
-            continue;
+            printf("\n\x1B[33m saliendo del servicio de mensajeria\x1B[0m");
         }
     }   
 }

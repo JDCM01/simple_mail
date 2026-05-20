@@ -113,19 +113,55 @@ void* client_manager(void* args){
             } else {
                 perror("Error leyendo comando del cliente");
             }
+            break;
         } else {
             command[read_bytes] = '\0'; // Aseguramos que la cadena termine en nulo
         }
 
         //ejecutando comando
         if(compare_strings(command, "quit\0") == 1){
-            printf("under construction");
+            break;
         }else if(compare_strings(command, "check\0") == 1){
             check_directory(arguments->client_fd, client_mail);
         }else if(compare_strings(command, "send\0") == 1){
             printf("under constructio");
         }
     }
+
+    //protegiendo la sección critica de la lista
+    List* current = *(arguments->client_list);
+    List* previous = NULL;
+    int found = 0;
+
+    // Recorriendo la lista para encontrar al nodo del cliente y eliminarlo
+    while (current != NULL) {
+        if (current->user->client_fd == arguments->client_fd) {
+            if (previous == NULL) {
+                // El nodo a eliminar es el primero de la lista
+                *(arguments->client_list) = current->next;
+            } else {
+                // El nodo está en medio o al final
+                previous->next = current->next;
+            }
+            
+            // Liberando la memoria
+            free(current->user); 
+            free(current);
+            found = 1;
+            break;
+        }
+        previous = current;
+        current = current->next;
+    }
+
+    //liberando el recurso
+    pthread_mutex_unlock(&lock);
+
+    // Cerrando el socket del cliente
+    close(arguments->client_fd);
+
+    // Liberando la estructura de argumentos 
+    free(arguments);
     
     pthread_exit(NULL);
 }
