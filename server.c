@@ -99,6 +99,15 @@ void* client_manager(void* args){
     *(arguments->client_list) = new_node;
     pthread_mutex_unlock(&lock); // se abre el candado ya que salio de la sección critica
     
+    // creando la carpeta donde se almacenaran los correos de los usuarios
+    char user_dir[MAX_SIZE];
+    sprintf(user_dir, "inbox/%s", client_mail);
+    #ifdef _WIN32
+    mkdir(user_dir); 
+    #else
+    mkdir(user_dir, 0777); 
+    #endif
+
     while(1){
         //Recibiendo el comando del cliente (leer de forma robusta)
         char command[NAMES_SIZE];
@@ -124,7 +133,7 @@ void* client_manager(void* args){
         }else if(compare_strings(command, "check\0") == 1){
             check_directory(arguments->client_fd, client_mail);
         }else if(compare_strings(command, "send\0") == 1){
-            printf("under constructio");
+            store_message(arguments->client_fd, client_mail);
         }
     }
 
@@ -219,11 +228,12 @@ int main(void){
     }
     #endif
     
-    /*creando la carpeta inbox, en caso de que no exista, se le conceden
-    permisos de: lectura, escritura, ejecucion para propietario y otros usuarios*/ 
-    if(mkdir("inbox", 0777) == -1){
-        perror("mkdir fallo:");
-    }
+    //creando la carpeta inbox
+    #ifdef _WIN32
+    mkdir("inbox");
+    #else
+    mkdir("inbox", 0777);
+    #endif
 
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;

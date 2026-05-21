@@ -12,10 +12,15 @@
 *-dir: data type para los directorios*/
 void show_directory_content(int client_fd, DIR *dir){
     struct dirent *entry;
+    char message[MAX_SIZE];
+    memset(message, 0, sizeof(message));
     while((entry = readdir(dir)) != NULL){
-        write(client_fd, entry->d_name, string_length(entry->d_name, NAMES_SIZE));
+        //write(client_fd, entry->d_name, string_length(entry->d_name, NAMES_SIZE));
+        concatenate_string(message, entry->d_name, MAX_SIZE);
+        concatenate_string(message, "\n", MAX_SIZE);
     }
-    write(client_fd, "end\0", string_length("end\0", MAX_SIZE));
+    write(client_fd, message, string_length(message, MAX_SIZE));
+    //write(client_fd, "end", sizeof("end"));
 }
 
 /*
@@ -34,12 +39,6 @@ void check_directory(int client_fd, char client_mail[]){
     //cambiamos la ubicación actual a la carpeta inbox
     if(chdir("inbox") == 1){
         perror("chdir fallo:");
-    }
-
-    /*creando la carpeta donde se guardaran los registros del cliente en caso 
-    de que no exista*/
-    if(mkdir(client_mail, 0777) == -1){
-        perror("mkdir fallo: ");
     }
 
     //cambiamos la ubicación actual a la carpeta inbox
@@ -104,7 +103,74 @@ void check_directory(int client_fd, char client_mail[]){
 *BODY: "cadena proporcionada por el cliente"
 *FROM: client_mail
 *finalmente se almacenara esta cadena en un archivo de texto
-*en el inbox del usuario designado bajo el nombre del subject mas un timestamp*/
-void store_message(int client_fd, char client_mail[]){
+*en el inbox del usuario designado bajo el nombre del subject mas un timestamp
+*
+*argumentos:
+*-client_fd: descriptor de archivos del cliente
+*-client_mail: mail del que va a enviar el correo
+**/
+#include <time.h> // REQUERIDO para el timestamp
 
+void store_message(int client_fd, char client_mail[]) {
+    int read_bytes;
+    char receiver_mail[MAX_SIZE];
+    char subject[MAX_SIZE];
+    char body[MAX_SIZE];
+    
+    memset(receiver_mail, 0, sizeof(receiver_mail));
+    memset(subject, 0, sizeof(subject));
+    memset(body, 0, sizeof(body));
+
+    //Mostrando usuarios disponibles 
+    DIR *dir = opendir("inbox");
+    if (dir == NULL) {
+        perror("Error abriendo carpeta inbox");
+        write(client_fd, "end", sizeof("end"));
+        return;
+    }
+    show_directory_content(client_fd, dir); 
+
+    //Leyendo destinatario
+    read_bytes = read(client_fd, receiver_mail, sizeof(receiver_mail) - 1);
+    if (read_bytes <= 0) return;
+    receiver_mail[read_bytes] = '\0';
+
+    //Leyendo asunto
+    read_bytes = read(client_fd, subject, sizeof(subject) - 1);
+    if (read_bytes <= 0) return;
+    subject[read_bytes] = '\0';
+
+    //Leyendo Cuerpo
+    read_bytes = read(client_fd, body, sizeof(body) - 1);
+    if (read_bytes <= 0) return;
+    body[read_bytes] = '\0';
+
+    //Construyendo el nombre del archivo 
+    time_t t = time(NULL); 
+    char file_name[MAX_SIZE * 2];
+    snprintf(file_name, sizeof(file_name), "%s_%ld.txt", subject, (long)t);
+
+    //Construyendo la ruta completa de destino
+    size_t filepath_len = strlen("inbox/") + strlen(receiver_mail) + 1 + strlen(file_name) + 1;
+    char *filepath = malloc(filepath_len);
+    if (filepath == NULL) {
+        perror("Error reservando memoria para la ruta del correo");
+        return;
+    }
+    snprintf(filepath, filepath_len, "inbox/%s/%s", receiver_mail, file_name);
+
+    //Intentando guardar el archivo
+    FILE* file_pointer = fopen(filepath, "w");
+    free(filepath);
+    if (file_pointer == NULL) {
+        perror("Error al crear el archivo del correo");
+        return;
+    }
+
+    //Guardando 
+    fprintf(file_pointer, "FROM: %s\n", client_mail);
+    fprintf(file_pointer, "SUBJECT: %s\n", subject);
+    fprintf(file_pointer, "BODY:\n%s\n", body);
+    
+    fclose(file_pointer);
 }

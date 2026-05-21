@@ -7,6 +7,7 @@
 #include<sys/stat.h>   // mkdir
 #include<unistd.h>     // chdir
 #include<dirent.h>     // opendir, readdir, closedir
+#include <time.h>
 
 
 #ifdef _WIN32
@@ -36,7 +37,7 @@
 *IPV6_SIZE: tamaño que tendran las cadenas que almacenen las direcciones ipv6
 */
 
-#define MAX_SIZE 240
+#define MAX_SIZE 500
 #define NAMES_SIZE 30
 #define IPV4_SIZE  16
 #define IPV6_SIZE 46
@@ -135,7 +136,7 @@ void eliminate_from_string(char string[], char piece[], char mark_character, siz
 *piece: array donde se guardara la string extraida
 *goal_character: caracter que indicara el punto de parada del ciclo deseada
 */
-void extract_from_string(const char string[], char piece[], char goal_character);
+void extract_from_string(const char string[], char piece[], char goal_character, size_t MAX_LENGTH);
 
 /*
 *check_string

@@ -12,7 +12,8 @@
 void receive_message(int client_fd, char incomming_mesage[], char receiver[]){
     char emissary[NAMES_SIZE];
     char message[MAX_SIZE];
-    int bytes_leidos = read(client_fd, message, sizeof(message));
+    memset(message, 0, sizeof(message));
+    int bytes_leidos = read(client_fd, message, sizeof(message) -1);
     if (bytes_leidos > 0) {
         message[bytes_leidos] = '\0'; // Aseguramos que la cadena termine en nulo
         //extract_from_string(message, emissary, ':');
@@ -81,8 +82,9 @@ void receive_and_send(int client_fd, char incoming_message[], char receiver[],si
 */
 void color_format(char message[], char receiver[]){
     char emissary[NAMES_SIZE];
+    memset(emissary, 0, sizeof(emissary));
     fflush(stdout);
-    extract_from_string(message, emissary, ':');
+    extract_from_string(message, emissary, ':', NAMES_SIZE);
     if(compare_strings(emissary, "Server") == 1){
         printf("\n\x1B[33m %s\x1B[0m", message);
         fflush(stdout);
@@ -140,9 +142,9 @@ void eliminate_from_string(char string[], char piece[], char mark_character, siz
 *piece: array donde se guardara la string extraida
 *goal_character: caracter que indicara el punto de parada del ciclo deseada
 */
-void extract_from_string(const char string[], char piece[], char goal_character){
+void extract_from_string(const char string[], char piece[], char goal_character, size_t MAX_LENGTH){
     int i = 0;
-    while(i < MAX_SIZE - 1 && string[i] != '\0' && string[i] != goal_character){
+    while(i < (int)MAX_LENGTH - 1 && string[i] != '\0' && string[i] != goal_character){
         piece[i] = string[i];
         i++;
     }
