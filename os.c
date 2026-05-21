@@ -146,9 +146,11 @@ void store_message(int client_fd, char client_mail[]) {
     body[read_bytes] = '\0';
 
     //Construyendo el nombre del archivo 
-    time_t t = time(NULL); 
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    int short_id = (tv.tv_usec / 1000) % 100; 
     char file_name[MAX_SIZE * 2];
-    snprintf(file_name, sizeof(file_name), "%s_%ld.txt", subject, (long)t);
+    sprintf(file_name, "%s_%02d.txt", subject, short_id);
 
     //Construyendo la ruta completa de destino
     size_t filepath_len = strlen("inbox/") + strlen(receiver_mail) + 1 + strlen(file_name) + 1;

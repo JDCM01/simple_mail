@@ -8,6 +8,7 @@
 #include<unistd.h>     // chdir
 #include<dirent.h>     // opendir, readdir, closedir
 #include <time.h>
+#include <sys/time.h> // Para struct timeval
 
 
 #ifdef _WIN32

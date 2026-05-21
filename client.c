@@ -123,7 +123,7 @@ int main(void){
         if(compare_strings("send\0", option_message) == 1){
             printf("\n\x1B[33m Estos son los correos a los cuales puede enviarles un correo: \n\x1B[0m");
             list_registers(client_fd);
-            printf("\n\x1B[33m A continuación digite el correo de la persona a la que le quiera enviar el correo \x1B[0m");
+            printf("\n\x1B[33m A continuación digite el correo de la persona a la que le quiera enviar el correo:  \x1B[0m");
             char receiver_mail[NAMES_SIZE];
             memset(receiver_mail, 0, sizeof(receiver_mail));
             char subject[MAX_SIZE];
@@ -132,10 +132,10 @@ int main(void){
             memset(body, 0, sizeof(body));
             get_string(receiver_mail);
             write(client_fd, receiver_mail, string_length(receiver_mail, NAMES_SIZE));
-            printf("\n\x1B[33m Por favor digite el asunto del correo \x1B[om");
+            printf("\n\x1B[33m Por favor digite el asunto del correo:  \x1B[0m");
             get_string(subject);
             write(client_fd, subject, string_length(subject, MAX_SIZE));
-            printf("\n\x1B[33m Por favor digite el cuerpo del correo \x1B[om");
+            printf("\n\x1B[33m Por favor digite el cuerpo del correo:  \x1B[0m");
             get_string(body);
             write(client_fd, body, string_length(body, MAX_SIZE));
             
